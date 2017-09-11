@@ -11,6 +11,9 @@ GLuint vao;
 // Identifcador del manager de los shaders (shaderProgram)
 GLuint shaderProgram;
 
+float vertsPerFrame = 0.0f;
+float delta = 0.01f;
+
 void Initialize()
 {
 	// Creando toda la memoria que el programa va a utilizar.
@@ -19,14 +22,25 @@ void Initialize()
 	// Lista de vec2
 	// Claramente en el CPU y RAM
 	std::vector<glm::vec2> positions;
-	positions.push_back(glm::vec2(-1.0f, -1.0f));
-	positions.push_back(glm::vec2(1.0f, -1.0f));
-	positions.push_back(glm::vec2(0.0f, 1.0f));
 	// Arreglo de colores en el cpu
 	std::vector<glm::vec3> colors;
-	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
-	colors.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-	colors.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+
+	positions.push_back(glm::vec2(0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+	for (float i = 0.0f; i <= 360.0f; i += 1.0f)
+	{
+		positions.push_back(
+			glm::vec2(
+				glm::cos(glm::radians(i)),
+				glm::sin(glm::radians(i))
+				));
+		colors.push_back(
+			glm::vec3(
+				glm::cos(glm::radians(i)),
+				glm::sin(glm::radians(i)),
+				glm::cos(glm::radians(i)) * glm::sin(glm::radians(i))
+			));
+	}
 
 	// Queremos generar 1 manager
 	glGenVertexArrays(1, &vao);
@@ -68,7 +82,7 @@ void Initialize()
 	// VERTEX SHADER
 	// Leemos el archivo Default.vert donde está
 	// el código del vertex shader.
-	ifile.Read("Default.vert");
+	ifile.Read("DiscardCenter.vert");
 	// Obtenemos el código fuente y lo guardamos
 	// en un string
 	std::string vertexSource = ifile.GetContents();
@@ -87,7 +101,7 @@ void Initialize()
 	// Vamos a asumir que no hay ningún error.
 	glCompileShader(vertexShaderHandle);
 
-	ifile.Read("Default.frag");
+	ifile.Read("DiscardCenter.frag");
 	std::string fragmentSource = ifile.GetContents();
 	GLuint fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
 	const GLchar *fragmentSource_c = (const GLchar*)fragmentSource.c_str();
@@ -107,6 +121,16 @@ void Initialize()
 	// Ejecutamos el proceso de linker (asegurarnos que el vertex y fragment son
 	// compatibles)
 	glLinkProgram(shaderProgram);
+
+	// Para configurar un uniform, tenemos que 
+	// decirle a OpenGL que vamos a utilizar el
+	// shader program (manager)
+	glUseProgram(shaderProgram);
+	GLint uniformLocation =
+		glGetUniformLocation(shaderProgram,
+			"Resolution");
+	glUniform2f(uniformLocation, 400.0f, 400.0f);
+	glUseProgram(0);
 }
 
 void GameLoop()
@@ -121,14 +145,38 @@ void GameLoop()
 	// VBOs asociados automáticamente.
 	glBindVertexArray(vao);
 	// Función de dibujado sin indices.
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, glm::clamp(vertsPerFrame, 0.0f, 362.0f));
 	// Terminamos de utilizar el manager
 	glBindVertexArray(0);
 	// Desactivamos el manager
 	glUseProgram(0);
 
+	vertsPerFrame += delta;
+	if (vertsPerFrame < 0.0f || vertsPerFrame >= 380.0f)
+		delta *= -1.0f;
+
 	// Cuando terminamos de renderear, cambiamos los buffers.
 	glutSwapBuffers();
+}
+
+void Idle()
+{
+	// Cuando OpenGL entra en modo de reposo 
+	// (para guardar bateria, por ejemplo)
+	// le decimos que vuelva a dibujar ->
+	// Vuelve a mandar a llamar GameLoop
+	glutPostRedisplay();
+}
+
+void ReshapeWindow(int width, int height)
+{
+	glViewport(0, 0, width, height);
+	glUseProgram(shaderProgram);
+	GLint uniformLocation =
+		glGetUniformLocation(shaderProgram,
+			"Resolution");
+	glUniform2f(uniformLocation, width, height);
+	glUseProgram(0);
 }
 
 int main(int argc, char* argv[])
@@ -155,8 +203,16 @@ int main(int argc, char* argv[])
 	glutInitWindowSize(400, 400);
 	// Creamos la ventana y le damos un título.
 	glutCreateWindow("Hello World GL");
-	// Asociamos una función de render. Esta función se mandará a llamar para dibujar un frame.
+	// Asociamos una función de render.
+	//Esta función se mandará a llamar para dibujar un frame.
 	glutDisplayFunc(GameLoop);
+	// Asociamos una función para el cambio de resolución
+	// de la ventana. Freeglut la va a mandar a llamar
+	// cuando alguien cambie el tamaño de la venta.
+	glutReshapeFunc(ReshapeWindow);
+	// Asociamos la función que se mandará a llamar
+	// cuando OpenGL entre en modo de reposo.
+	glutIdleFunc(Idle);
 
 	// Inicializar GLEW. Esta librería se encarga de obtener el API de OpenGL de
 	// nuestra tarjeta de video. SHAME ON YOU MICROSOFT.
