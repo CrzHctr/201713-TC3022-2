@@ -11,9 +11,6 @@ GLuint vao;
 // Identifcador del manager de los shaders (shaderProgram)
 GLuint shaderProgram;
 
-float vertsPerFrame = 0.0f;
-float delta = 0.01f;
-
 void Initialize()
 {
 	// Creando toda la memoria que el programa va a utilizar.
@@ -22,25 +19,16 @@ void Initialize()
 	// Lista de vec2
 	// Claramente en el CPU y RAM
 	std::vector<glm::vec2> positions;
+	positions.push_back(glm::vec2( 0.5f, -0.5f));
+	positions.push_back(glm::vec2( 0.5f,  0.5f));
+	positions.push_back(glm::vec2(-0.5f, -0.5f));
+	positions.push_back(glm::vec2(-0.5f,  0.5f));
 	// Arreglo de colores en el cpu
 	std::vector<glm::vec3> colors;
-
-	positions.push_back(glm::vec2(0.0f, 0.0f));
-	colors.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-	for (float i = 0.0f; i <= 360.0f; i += 1.0f)
-	{
-		positions.push_back(
-			glm::vec2(
-				glm::cos(glm::radians(i)),
-				glm::sin(glm::radians(i))
-				));
-		colors.push_back(
-			glm::vec3(
-				glm::cos(glm::radians(i)),
-				glm::sin(glm::radians(i)),
-				glm::cos(glm::radians(i)) * glm::sin(glm::radians(i))
-			));
-	}
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 
 	// Queremos generar 1 manager
 	glGenVertexArrays(1, &vao);
@@ -82,7 +70,7 @@ void Initialize()
 	// VERTEX SHADER
 	// Leemos el archivo Default.vert donde está
 	// el código del vertex shader.
-	ifile.Read("DiscardCenter.vert");
+	ifile.Read("Default.vert");
 	// Obtenemos el código fuente y lo guardamos
 	// en un string
 	std::string vertexSource = ifile.GetContents();
@@ -101,7 +89,7 @@ void Initialize()
 	// Vamos a asumir que no hay ningún error.
 	glCompileShader(vertexShaderHandle);
 
-	ifile.Read("DiscardCenter.frag");
+	ifile.Read("Default.frag");
 	std::string fragmentSource = ifile.GetContents();
 	GLuint fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
 	const GLchar *fragmentSource_c = (const GLchar*)fragmentSource.c_str();
@@ -121,16 +109,6 @@ void Initialize()
 	// Ejecutamos el proceso de linker (asegurarnos que el vertex y fragment son
 	// compatibles)
 	glLinkProgram(shaderProgram);
-
-	// Para configurar un uniform, tenemos que 
-	// decirle a OpenGL que vamos a utilizar el
-	// shader program (manager)
-	glUseProgram(shaderProgram);
-	GLint uniformLocation =
-		glGetUniformLocation(shaderProgram,
-			"Resolution");
-	glUniform2f(uniformLocation, 400.0f, 400.0f);
-	glUseProgram(0);
 }
 
 void GameLoop()
@@ -145,15 +123,11 @@ void GameLoop()
 	// VBOs asociados automáticamente.
 	glBindVertexArray(vao);
 	// Función de dibujado sin indices.
-	glDrawArrays(GL_TRIANGLE_FAN, 0, glm::clamp(vertsPerFrame, 0.0f, 362.0f));
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	// Terminamos de utilizar el manager
 	glBindVertexArray(0);
 	// Desactivamos el manager
 	glUseProgram(0);
-
-	vertsPerFrame += delta;
-	if (vertsPerFrame < 0.0f || vertsPerFrame >= 380.0f)
-		delta *= -1.0f;
 
 	// Cuando terminamos de renderear, cambiamos los buffers.
 	glutSwapBuffers();
@@ -171,12 +145,6 @@ void Idle()
 void ReshapeWindow(int width, int height)
 {
 	glViewport(0, 0, width, height);
-	glUseProgram(shaderProgram);
-	GLint uniformLocation =
-		glGetUniformLocation(shaderProgram,
-			"Resolution");
-	glUniform2f(uniformLocation, width, height);
-	glUseProgram(0);
 }
 
 int main(int argc, char* argv[])
@@ -221,6 +189,14 @@ int main(int argc, char* argv[])
 	// Configurar OpenGL. Este es el color por default del buffer de color
 	// en el framebuffer.
 	glClearColor(1.0f, 1.0f, 0.5f, 1.0f);
+	// Ademas de solicitar el buffer de profundidad, tenemos
+	// que decirle a OpenGL que lo queremos activo
+	glEnable(GL_DEPTH_TEST);
+	// Activamos el borrado de caras traseras.
+	// Ahora todos los triangulos que dibujemos deben estar en CCW
+	glEnable(GL_CULL_FACE);
+	// No dibujar las caras traseras de las geometrías.
+	glCullFace(GL_BACK);
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
