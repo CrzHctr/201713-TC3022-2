@@ -3,6 +3,11 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <vector>
+#include "Mesh.h"
+#include "ShaderProgram.h"
+
+Mesh _mesh;
+ShaderProgram _shaderProgram;
 
 void Initialize()
 {
@@ -12,16 +17,72 @@ void Initialize()
 	// Lista de vec2
 	// Claramente en el CPU y RAM
 	std::vector<glm::vec2> positions;
-	positions.push_back(glm::vec2( 0.5f, -0.5f));
-	positions.push_back(glm::vec2( 0.5f,  0.5f));
-	positions.push_back(glm::vec2(-0.5f, -0.5f));
-	positions.push_back(glm::vec2(-0.5f,  0.5f));
+	positions.push_back(glm::vec2( 
+		glm::cos(glm::radians(90.0f)),
+		glm::sin(glm::radians(90.0f))));
+	positions.push_back(glm::vec2(
+		0.5f * glm::cos(glm::radians(18.0f)),
+		0.5f * glm::sin(glm::radians(18.0f))));
+	positions.push_back(glm::vec2(
+		glm::cos(glm::radians(18.0f)),
+		glm::sin(glm::radians(18.0f))));
+	positions.push_back(glm::vec2(
+		0.5f * glm::cos(glm::radians(306.0f)),
+		0.5f * glm::sin(glm::radians(306.0f))));
+	positions.push_back(glm::vec2(
+		glm::cos(glm::radians(306.0f)),
+		glm::sin(glm::radians(306.0f))));
+	positions.push_back(glm::vec2(
+		0.5f * glm::cos(glm::radians(234.0f)),
+		0.5f * glm::sin(glm::radians(234.0f))));
+	positions.push_back(glm::vec2(
+		glm::cos(glm::radians(234.0f)),
+		glm::sin(glm::radians(234.0f))));
+	positions.push_back(glm::vec2(
+		0.5f * glm::cos(glm::radians(162.0f)),
+		0.5f * glm::sin(glm::radians(162.0f))));
+	positions.push_back(glm::vec2(
+		glm::cos(glm::radians(162.0f)),
+		glm::sin(glm::radians(162.0f))));
+	positions.push_back(glm::vec2(
+		0.5f * glm::cos(glm::radians(90.0f)),
+		0.5f * glm::sin(glm::radians(90.0f))));
+	positions.push_back(glm::vec2(
+		glm::cos(glm::radians(90.0f)),
+		glm::sin(glm::radians(90.0f))));
+	positions.push_back(glm::vec2(
+		0.5f * glm::cos(glm::radians(18.0f)),
+		0.5f * glm::sin(glm::radians(18.0f))));
+
+
+
+
 	// Arreglo de colores en el cpu
 	std::vector<glm::vec3> colors;
 	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+	colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+
+
+	_mesh.CreateMesh(12);
+	_mesh.SetPositionAttribute(positions, GL_STATIC_DRAW, 0);
+	_mesh.SetColorAttribute(colors, GL_STATIC_DRAW, 1);
+
+	_shaderProgram.CreateProgram();
+	_shaderProgram.AttachShader("Default.vert", GL_VERTEX_SHADER);
+	_shaderProgram.AttachShader("Default.frag", GL_FRAGMENT_SHADER);
+	_shaderProgram.SetAttribute(0, "VertexPosition");
+	_shaderProgram.SetAttribute(1, "VertexColor");
+	_shaderProgram.LinkProgram();
 }
 
 void GameLoop()
@@ -29,6 +90,10 @@ void GameLoop()
 	// Limpiamos el buffer de color y el buffer de profunidad.
 	// Siempre hacerlo al inicio del frame
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	_shaderProgram.Activate();
+	_mesh.Draw(GL_TRIANGLE_STRIP);
+	_shaderProgram.Deactivate();
 
 	// Cuando terminamos de renderear, cambiamos los buffers.
 	glutSwapBuffers();
